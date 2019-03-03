@@ -5,7 +5,7 @@
     BMP280 - Pressão, Temperatura, Altitude (calculada)
     Adafruit Ultimate GPS - Longitude, Latitude, Altitude medida
     Guarda tudo num cartão SD
-    APC220 - Emissor de dados RF
+    RFM69W LoRa - Emissor de dados RF
 */
 // ___________________________ PARAMETROS PARA AJUSTAR ______________________________
 
@@ -37,6 +37,9 @@
 #ifdef ENABLE_BMP
   #include <Adafruit_BMP280.h>
 #endif
+#ifdef ENABLE_RF 
+  #include <RH_RF95.h>
+#endif
 
 //parâmetros do link RF
 #define NODEID        2               //nó do emissor 1..255
@@ -54,7 +57,7 @@
   Adafruit_BMP280 bmp; //I2C
 #endif
 #ifdef ENABLE_RF
-  APC220 RF;
+  RH_RF69 RF;
 #endif
 #ifdef ENABLE_GPS
   SoftwareSerial mySerial(RxPin, TxPin);
@@ -123,7 +126,9 @@ void setup_GPS() {
 //------------------------------------ RF -------------------------------------
 void setup_RF() {
 #ifdef ENABLE_RF
-  //inicializa o módulo RFM69 (emissor)
+  //inicializa o módulo RFM96 (emissor)
+  RF.init();
+  RF.setFrequency(FREQUENCY);
   RF.initialize(FREQUENCY, NODEID, NETWORKID);
   RF.setHighPower();      // usar a capacidadade mais alta
   RF.encrypt(ENCRYPTKEY);
