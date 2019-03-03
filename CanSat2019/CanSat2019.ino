@@ -49,8 +49,8 @@
 #define FREQUENCY     RF69_433MHZ     //define a frequência base
 
 // PINS
-#define RxPin       4   //inicializa o Software Serial port
-#define TxPin       3   //inicializa o Software Serial port
+#define RxPin       1   //inicializa o Software Serial port
+#define TxPin       0   //inicializa o Software Serial port
 
 // SENSORES
 #ifdef ENABLE_BMP
