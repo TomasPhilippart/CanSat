@@ -57,7 +57,7 @@
   Adafruit_BMP280 bmp; //I2C
 #endif
 #ifdef ENABLE_RF
-  RH_RF69 RF;
+  RH_RF96 RF;
 #endif
 #ifdef ENABLE_GPS
   SoftwareSerial mySerial(RxPin, TxPin);
