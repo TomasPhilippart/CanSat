@@ -33,6 +33,7 @@
 #endif
 #ifdef ENABLE_PIXY
   #include <Pixy2.h>
+  Pixy2 pixy;
 #endif
 #ifdef ENABLE_BMP
   #include <Adafruit_BMP280.h>
@@ -79,7 +80,7 @@ struct Measurements {
   int satellites;           // number
   double pressure;          // hPa
   double temperature;       // celsius
-  
+  uint8_t numblocks;        // number of blocks (Pixy)
 };
 
 //------------------------------------ SD CARD ----------------------------------
@@ -97,7 +98,6 @@ void setup_SD() {
 //------------------------------------ PIXY 2 ----------------------------------
 void setup_PIXY() {
 #ifdef ENABLE_PIXY
-  Pixy2 pixy;
   //Inicializa a Pixy2
   if (pixy.init()) {
     #ifdef DEBUG
@@ -147,10 +147,10 @@ void setup_RF() {
   rf95.setFrequency(RF95_FREQ);
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
   // you can set transmitter powers from 5 to 23 dBm:
-  rf95.setTxPower(23, false);
+  rf95.setTxPower(23, false); // CONFIRMAR A POTENCIA A USAR
   
   // enviar o header para testar a ligação
-  const uint8_t header[] = "time,lat,long,alt,vel,sat,press,temp,acc_x,acc_y,acc_z,impact,lum";
+  const uint8_t header[] = "time,lat,long,alt,vel,sat,press,temp,blocks";
   rf95.send(header, sizeof(header));
   rf95.waitPacketSent();
   #ifdef DEBUG
@@ -246,22 +246,12 @@ void read_BMP_data(Measurements* data) { // mede a temperatura e a pressão
 //----------------------------------------------- PIXY FUNCTIONS ----------------------------------------------
 void read_PIXY_data(Measurements* data) { // mede a temperatura e a pressão
 #ifdef ENABLE_PIXY
-  int i;
   pixy.ccc.getBlocks();
-
-  if (pixy.ccc.numBlocks) {
-      #ifdef DEBUG
-        Serial.print(F("Blocks: ")); Serial.println(pixy.ccc.numBlocks);  // prints how many blocks are detected      
-      #endif
-
-      for (i=0; i<pixy.ccc.numBlocks; i++= {
-        Serial.print("  block  ");
-        Serial.print(i);
-        Serial.print(": ");
-        pixy.ccc.blocks[i].print();
-      }
-  }
-
+  data->numblocks = pixy.ccc.numBlocks;
+  #ifdef DEBUG
+    // prints number of blocks are detected 
+    Serial.print(F("Blocks: ")); Serial.println(pixy.ccc.numBlocks);     
+  #endif
 #endif
 }
 //--------------------------------- RF FUNCTIONS --------------------------
@@ -279,9 +269,11 @@ void send_and_save_measurements(Measurements* data) {
   itoa(data->satellites, val+1, 10), strcat(buf, val);
   dtostrf(data->pressure, 0, 2, val+1); strcat(buf, val);
   dtostrf(data->temperature, 0, 2, val+1); strcat(buf, val);
+  itoa(data->numblocks, val+1, 10), strcat(buf, val);
   
   #ifdef ENABLE_RF
-    RF.send(GATEWAYID, buf, strlen(buf));
+    rf95.send(buf, strlen(buf));
+    rf95.waitPacketSent();
   #endif
   #ifdef ENABLE_SD
     File mySensorData = SD.open(FILENAME, FILE_WRITE);
@@ -306,7 +298,10 @@ void loop() {
   
   // PRESSÃO, TEMPERATURA, ALTITUDE (calc)
   read_BMP_data(&dados);
-    
+  
+  // BLOCKS
+  read_PIXY_data(&dados);
+      
   // ENVIO DE DADOS (RF)
   send_and_save_measurements(&dados);
   
