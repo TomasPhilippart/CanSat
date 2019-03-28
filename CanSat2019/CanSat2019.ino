@@ -9,7 +9,7 @@
 */
 // ___________________________ PARAMETROS PARA AJUSTAR ______________________________
 
-#define PRESSÃO       1027.7 // Pressão atmosférica atual
+#define PRESSÃO      1027.7 // Pressão atmosférica atual
 #define BAUD         115200  // console speed
 #define INTERVALO      2000  // 2 segundos entre medidas + emissões de dados
 //#define NMEA_SIZE       100  // 100 chars max
@@ -20,11 +20,10 @@
 //#define ENABLE_SD            // 
 #define ENABLE_PIXY
 
-
 // LIVARIAS
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
-//#include <SPI.h>
+#include <SPI.h>
 #ifdef ENABLE_SD
   #include <SD.h>
 #endif
@@ -43,23 +42,22 @@
 #endif
 
 //parâmetros do link RF
-#define NODEID        2               //nó do emissor 1..255
-#define NETWORKID     100             //o mesmo valor entre 0..255 em todos os nós da rede (define o canal, i.e, a frequência)
-#define GATEWAYID     1               //nó do recetor 
-#define ENCRYPTKEY    "TeamAlpha2019" //chave de encriptação de 16 caracteres
-#define FREQUENCY     RF69_433MHZ     //define a frequência base
+#define RF95_FREQ 433.0
 
 // PINS
 #define chipSelect  10 
 #define RxPin       1   //inicializa o Software Serial port
 #define TxPin       0   //inicializa o Software Serial port
+#define RFM95_CS    10  // VERIFICAR
+#define RFM95_RST   9   // VERIFICAR
+#define RFM95_INT   2   // VERIFICAR
 
 // SENSORES
 #ifdef ENABLE_BMP
   Adafruit_BMP280 bmp; //I2C
 #endif
 #ifdef ENABLE_RF
-  RH_RF96 RF;
+  RH_RF95 rf95(RFM95_CS, RFM95_INT);
 #endif
 #ifdef ENABLE_GPS
   SoftwareSerial mySerial(RxPin, TxPin);
@@ -130,15 +128,33 @@ void setup_GPS() {
 void setup_RF() {
 #ifdef ENABLE_RF
   //inicializa o módulo RFM96 (emissor)
-  RF.init();
-  RF.setFrequency(FREQUENCY);
-  RF.initialize(FREQUENCY, NODEID, NETWORKID);
-  RF.setHighPower();      // usar a capacidadade mais alta
-  RF.encrypt(ENCRYPTKEY);
-  const char header[] = "time,lat,long,alt,vel,sat,press,temp,acc_x,acc_y,acc_z,impact,lum";
-  RF.send(GATEWAYID, header, strlen(header));
+  pinMode(RFM95_RST, OUTPUT);
+  digitalWrite(RFM95_RST, HIGH);
+  // manual reset
+  digitalWrite(RFM95_RST, LOW);
+  delay(10);
+  digitalWrite(RFM95_RST, HIGH);
+  delay(10);
+  if (r95.init()) {
+    #ifdef DEBUG
+      Serial.println("RFM96 OK");
+    #endif 
+    } else {
+    #ifdef DEBUG
+      Serial.println("RFM96 failed");
+    #endif
+  }
+  rf95.setFrequency(RF95_FREQ);
+  // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
+  // you can set transmitter powers from 5 to 23 dBm:
+  rf95.setTxPower(23, false);
+  
+  // enviar o header para testar a ligação
+  const uint8_t header[] = "time,lat,long,alt,vel,sat,press,temp,acc_x,acc_y,acc_z,impact,lum";
+  rf95.send(header, sizeof(header));
+  rf95.waitPacketSent();
   #ifdef DEBUG
-    Serial.println(F("RFM69 OK"));
+    Serial.println(F("RFM96 OK"));
   #endif
 #endif
 }
