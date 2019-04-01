@@ -9,16 +9,16 @@
 */
 // ___________________________ PARAMETROS PARA AJUSTAR ______________________________
 
-#define PRESSÃO      1027.7 // Pressão atmosférica atual
+#define PRESSAO      1027.7 // Pressão atmosférica atual
 #define BAUD         115200  // console speed
 #define INTERVALO      2000  // 2 segundos entre medidas + emissões de dados
-//#define NMEA_SIZE       100  // 100 chars max
+#define NMEA_SIZE       100  // 100 chars max
 #define DEBUG                // imprime valores na consola 
 //#define ENABLE_BMP           // ligar o BMP
 //#define ENABLE_GPS           // 
-//#define ENABLE_RF            // para habilitar ou desabilitar funcionalidade para teste
+#define ENABLE_RF            // para habilitar ou desabilitar funcionalidade para teste
 //#define ENABLE_SD            // 
-#define ENABLE_PIXY
+//#define ENABLE_PIXY
 
 // LIVARIAS
 #include <Wire.h>
@@ -49,9 +49,9 @@
 #define chipSelect  10 
 #define RxPin       1   //inicializa o Software Serial port
 #define TxPin       0   //inicializa o Software Serial port
-#define RFM95_CS    10  // VERIFICAR
-#define RFM95_RST   9   // VERIFICAR
-#define RFM95_INT   2   // VERIFICAR
+#define RFM95_CS    2  // VERIFICAR
+#define RFM95_RST   4   // VERIFICAR
+#define RFM95_INT   3   // VERIFICAR
 
 // SENSORES
 #ifdef ENABLE_BMP
@@ -97,19 +97,23 @@ void setup_SD() {
 }
 //------------------------------------ PIXY 2 ----------------------------------
 void setup_PIXY() {
-#ifdef ENABLE_PIXY
-  //Inicializa a Pixy2
-  if (pixy.init()) {
-    #ifdef DEBUG
-      Serial.println("PIXY2 OK");
-    #endif 
-    } else {
-    #ifdef DEBUG
-      Serial.println("PIXY2 failed");
-    #endif
-#endif
+  #ifdef ENABLE_PIXY
+    //Inicializa a Pixy2
+    if (pixy.init()) {
+      #ifdef DEBUG
+        Serial.println("PIXY2 OK");
+      #endif 
+      } else {
+      #ifdef DEBUG
+        Serial.println("PIXY2 failed");
+      #endif
+        }
+  #endif
+
 }
+
 //------------------------------------ GPS -----------------------------------
+
 void setup_GPS() {  
 #ifdef ENABLE_GPS
   //Inicializa o GPS
@@ -125,6 +129,7 @@ void setup_GPS() {
 #endif
 }
 //------------------------------------ RF -------------------------------------
+
 void setup_RF() {
 #ifdef ENABLE_RF
   //inicializa o módulo RFM96 (emissor)
@@ -135,7 +140,7 @@ void setup_RF() {
   delay(10);
   digitalWrite(RFM95_RST, HIGH);
   delay(10);
-  if (r95.init()) {
+  if (rf95.init()) {
     #ifdef DEBUG
       Serial.println("RFM96 OK");
     #endif 
@@ -175,9 +180,10 @@ void setup_BMP() {
 }
 
 // ================================ SETUP =====================================
+
 void setup() {
 
-#ifdef DEBUG
+  #ifdef DEBUG
   #ifndef ESP8266
     while (!Serial);   // pause until serial console opens
   #endif
@@ -228,10 +234,10 @@ void read_GPS_data(Measurements* data) {
 void read_BMP_data(Measurements* data) { // mede a temperatura e a pressão
 #ifdef ENABLE_BMP
   //atualização da leitura de temperatura e pressão
-  double T, P;
-  T = bmp.readTemperature()
-  P = bmp.readPressure()
-  A = bmp.readAltitude(PRESSÃO);
+  double T, P, A;
+  T = bmp.readTemperature();
+  P = bmp.readPressure();
+  A = bmp.readAltitude(PRESSAO);
   //escreve dados no monitor série de Pressão e Temperatura
   #ifdef DEBUG
     Serial.print(F("Press: ")); Serial.println(P,2);  // units = hPa
