@@ -34,7 +34,7 @@ void setup()
   // then you can configure the power transmitter power for -1 to 14 dBm and with useRFO true. 
   // Failure to do that will result in extremely low transmit powers.
 //  driver.setTxPower(14, true);
-    driver.setFrequency(433.55);
+    rf95.setFrequency(433.55);
     Serial.println("Listening at 433MHz");
 }
 
