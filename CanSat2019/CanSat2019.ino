@@ -13,19 +13,20 @@
 
 #define PRESSAO      1027.7  // Pressão atmosférica atual
 #define BAUD         115200  // console speed
-#define DATA_INTERVAL  1000  // 1 segundo para contar muons
+#define DATA_INTERVAL   250  // 1 segundo para contar muons
 #define SEND_INTERVAL  2000  // 2 segundos para outras medidas e enviar
 #define NMEA_SIZE       100  // 100 chars max
 #define SIGNAL_THRESHOLD 50  // Min muon threshold to trigger on 
-#define DEBUG                // imprime valores na consola 
+#define TXPOWER          23  // entre 5-23 dbm
 
 // para habilitar ou desabilitar funcionalidade para teste
 #define ENABLE_BMP           // BPM
 //#define ENABLE_GPS         // GPS
 //#define ENABLE_RF          // RF
 #define ENABLE_SD            // SD card
-#define ENABLE_PIXY          // Pixy
+#define ENABLE_PIXY          // Pixy2
 //#define ENABLE_CSW         // Cosmic Watch
+#define DEBUG                // imprime valores na consola 
 
 // LIVARIAS
 #include <Wire.h>
@@ -166,7 +167,7 @@ void setup_RF() {
   rf95.setFrequency(RF95_FREQ);
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
   // you can set transmitter powers from 5 to 23 dBm:
-  rf95.setTxPower(23, false); // CONFIRMAR A POTENCIA A USAR
+  rf95.setTxPower(TXPOWER, false); // CONFIRMAR A POTENCIA A USAR
   
   // enviar o header para testar a ligação
   const uint8_t header[] = "time,lat,long,alt,vel,sat,press,temp,blocks,count,voltage";
@@ -276,7 +277,7 @@ void read_PIXY_data(Measurements* data) { // mede a temperatura e a pressão
 //----------------------------------------------- COSMIC WATCH FUNCTIONS ----------------------------------------------
 void read_CSW_data(Measurements* data) { // conta os muons
 #ifdef ENABLE_CSW
-  int adc = analogRead(A0);
+  int adc = analogRead(A0); // verificar pin
   data->voltage = 0
   if (adc > SIGNAL_THRESHOLD){
     for (int i = 0; i < (sizeof(cal)/sizeof(float)); i++) {
@@ -286,7 +287,7 @@ void read_CSW_data(Measurements* data) { // conta os muons
   }
   #ifdef DEBUG
     // prints number of muons detected 
-    Serial.print(F("Muons: ")); Serial.println(pixy.ccc.numBlocks);     
+    Serial.print(F("Muons: ")); Serial.println(data->muoncount);     
   #endif
 #endif
 }
@@ -339,17 +340,17 @@ void loop() {
   if (elapsed >= SEND_INTERVAL) { // cada 2 segundos
     elapsed = 0;
   
-  // GPS LATITUDE, LONGITUDE & ALTITUDE
-  read_GPS_data(&dados);
+    // GPS LATITUDE, LONGITUDE & ALTITUDE
+    read_GPS_data(&dados);
   
-  // PRESSÃO, TEMPERATURA, ALTITUDE (calc)
-  read_BMP_data(&dados);
+    // PRESSÃO, TEMPERATURA, ALTITUDE (calc)
+    read_BMP_data(&dados);
   
-  // BLOCKS
-  read_PIXY_data(&dados);
+    // BLOCKS
+    read_PIXY_data(&dados);
     
-  // ENVIO DE DADOS (RF)
-  send_and_save_measurements(&dados);
+    // ENVIO DE DADOS (RF)
+    send_and_save_measurements(&dados);
   
     // limpar os dados anteriores
     memset(&dados, 0, sizeof(Measurements));
