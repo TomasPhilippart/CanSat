@@ -5,9 +5,9 @@
     BMP280 - Pressão, Temperatura, Altitude (calculada)
     Adafruit Ultimate GPS - Longitude, Latitude, Altitude
     RFM96 LoRa - Emissor de dados RF
-  Cartão SD - Guardar dados
-  Pixy 2 Camera - Detetor de agua
-  Cosmic Watch - Detector de muões
+    Cartão SD - Guardar dados
+    Pixy 2 Camera - Detetor de agua
+    Cosmic Watch - Detector de muões
 */
 // ___________________________ PARAMETROS PARA AJUSTAR ______________________________
 
