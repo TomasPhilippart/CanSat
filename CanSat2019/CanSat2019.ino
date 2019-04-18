@@ -133,7 +133,7 @@ void setup_PIXY() {
 void setup_GPS() {  
 #ifdef ENABLE_GPS
   //Inicializa o GPS
-  GPS.begin(115200);                              //Turn on GPS at 9600 baud
+  GPS.begin(115200);                              //Turn on GPS at 115200 baud
   GPS.sendCommand("$PGCMD,33,0*6D");            //Turn off antenna update nuisance data
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA); //Request RMC and GGA Sentences only
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);    //Set update rate to 1 Hz
