@@ -10,31 +10,22 @@
 #include <SPI.h>
 #include <RH_RF95.h>
 
+#define RF95_FREQ     433.55
+
+
 // Singleton instance of the radio driver
 RH_RF95 rf95;
-//RH_RF95 driver(5, 2); // Rocket Scream Mini Ultra Pro with the RFM95W
 
-// Need this on Arduino Zero with SerialUSB port (eg RocketScream Mini Ultra Pro)
-//#define Serial SerialUSB
 
 void setup() 
 {
   Serial.begin(115200);
-  while (!Serial) ; // Wait for serial port to be available
   if (!rf95.init())
     Serial.println("init failed");
-  // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
 
-  // The default transmitter power is 13dBm, using PA_BOOST.
-  // If you are using RFM95/96/97/98 modules which uses the PA_BOOST transmitter pin, then 
-  // you can set transmitter powers from 5 to 23 dBm:
-//  driver.setTxPower(23, false);
-  // If you are using Modtronix inAir4 or inAir9,or any other module which uses the
-  // transmitter RFO pins and not the PA_BOOST pins
-  // then you can configure the power transmitter power for -1 to 14 dBm and with useRFO true. 
-  // Failure to do that will result in extremely low transmit powers.
-//  driver.setTxPower(14, true);
-    Serial.println("Listening at 433MHz");
+
+    Serial.println("Listening at " + RF95_FREQ + " MHz");
+    rf95.setFrequency(RF95_FREQ);
 }
 
 void loop()
