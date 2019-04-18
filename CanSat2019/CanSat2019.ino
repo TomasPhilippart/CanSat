@@ -41,6 +41,7 @@
 #endif
 #ifdef ENABLE_PIXY
   #include <Pixy2SPI_SS.h>
+  #include <Pixy2.h>
   Pixy2SPI_SS pixy;
 #endif
 #ifdef ENABLE_BMP
@@ -59,7 +60,7 @@
 
 #define BMP_CS      6   // Arduino D6 (SPI)
 #define SD_CS       4   // Arduino D4 (SPI)
-#define PIXY_CS     5   // Arduino D5 - se nao funcionar trocar com porta 10
+#define PIXY_CS     6   // Arduino D5 - se nao funcionar trocar com porta 10
 
 #define RFM95_CS    10  // Arduino D10 (porta SPI SS)
 #define RFM95_RST   9   // Arduino D9 (SPI)
@@ -279,7 +280,7 @@ void read_PIXY_data(Measurements* data) { // mede a temperatura e a pressão
 void read_CSW_data(Measurements* data) { // conta os muons
 #ifdef ENABLE_CSW
   int adc = analogRead(A0); // verificar pin
-  data->voltage = 0
+  data->voltage = 0;
   if (adc > SIGNAL_THRESHOLD){
     for (int i = 0; i < (sizeof(cal)/sizeof(float)); i++) {
       data->voltage += cal[i] * pow(adc,(sizeof(cal)/sizeof(float)-i-1));
