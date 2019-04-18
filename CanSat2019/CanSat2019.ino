@@ -17,7 +17,7 @@
 #define SEND_INTERVAL  2000  // 2 segundos para outras medidas e enviar
 #define NMEA_SIZE       100  // 100 chars max
 #define SIGNAL_THRESHOLD 50  // Min muon threshold to trigger on 
-#define TXPOWER          23  // entre 5-23 dbm
+#define TXPOWER          14  // entre 5-23 dbm
 
 // para habilitar ou desabilitar funcionalidade para teste
 //#define ENABLE_BMP           // BMP
@@ -132,6 +132,7 @@ void setup_PIXY() {
 //------------------------------------ GPS -----------------------------------
 void setup_GPS() {  
 #ifdef ENABLE_GPS
+  Serial.println("Inicializando o GPS...");
   //Inicializa o GPS
   GPS.begin(115200);                              //Turn on GPS at 115200 baud
   GPS.sendCommand("$PGCMD,33,0*6D");            //Turn off antenna update nuisance data
@@ -333,7 +334,7 @@ bool first = true;
 uint16_t elapsed = 0;
 
 void loop() {
-  
+   
   if (first) {
     memset(&dados, 0, sizeof(Measurements));
     first = false; 
