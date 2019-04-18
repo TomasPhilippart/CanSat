@@ -20,11 +20,11 @@
 #define TXPOWER          23  // entre 5-23 dbm
 
 // para habilitar ou desabilitar funcionalidade para teste
-#define ENABLE_BMP           // BPM
-//#define ENABLE_GPS         // GPS
+//#define ENABLE_BMP           // BMP
+#define ENABLE_GPS         // GPS
 //#define ENABLE_RF          // RF
-#define ENABLE_SD            // SD card
-#define ENABLE_PIXY          // Pixy2
+//#define ENABLE_SD            // SD card
+//#define ENABLE_PIXY          // Pixy2
 //#define ENABLE_CSW         // Cosmic Watch
 #define DEBUG                // imprime valores na consola 
 
@@ -59,7 +59,7 @@
 
 #define BMP_CS      6   // Arduino D6 (SPI)
 #define SD_CS       4   // Arduino D4 (SPI)
-#define PIXY_CS     5   // Arduino D5 - senao funcionar trocar com porta 10
+#define PIXY_CS     5   // Arduino D5 - se nao funcionar trocar com porta 10
 
 #define RFM95_CS    10  // Arduino D10 (porta SPI SS)
 #define RFM95_RST   9   // Arduino D9 (SPI)
@@ -328,10 +328,16 @@ void send_and_save_measurements(Measurements* data) {
 //====================================== MAIN LOOP =========================================
 
 Measurements dados;
-memset(&dados, 0, sizeof(Measurements));
+
+bool first = true;
 uint16_t elapsed = 0;
 
 void loop() {
+  
+  if (first) {
+    memset(&dados, 0, sizeof(Measurements));
+    first = false; 
+  }
   
   // MUONS                           cada 1 segundo
   read_CSW_data(&dados);
