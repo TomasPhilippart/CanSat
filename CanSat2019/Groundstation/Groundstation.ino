@@ -29,7 +29,7 @@ void setup() {
   digitalWrite(RFM95_RST, HIGH);
  
   while (!Serial);
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(100);
  
   Serial.println("Arduino LoRa RX Test!");
