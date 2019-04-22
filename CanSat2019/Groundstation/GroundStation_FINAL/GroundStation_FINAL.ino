@@ -7,7 +7,6 @@
 // Singleton instance of the radio driver
 RH_RF95 rf95;
 
-
 void setup() 
 {
   Serial.begin(115200);
