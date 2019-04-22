@@ -24,7 +24,7 @@
 #define ENABLE_BMP           // BMP
 //#define ENABLE_GPS         // GPS
 #define ENABLE_RF          // RF
-//#define ENABLE_SD            // SD card
+#define ENABLE_SD            // SD card
 //#define ENABLE_PIXY          // Pixy2
 //#define ENABLE_CSW         // Cosmic Watch
 #define DEBUG                // imprime valores na consola 
