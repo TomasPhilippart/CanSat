@@ -252,11 +252,11 @@ void read_BMP_data(Measurements* data) { // mede a temperatura e a pressão
   double T, P, A;
   T = bmp.readTemperature();
   P = bmp.readPressure();
-  A = bmp.readAltitude(PRESSAO);
+  A = bmp.readAltitude(P);
   //escreve dados no monitor série de Pressão e Temperatura
   #ifdef DEBUG
-    Serial.print(F("Press: ")); Serial.println(P,2);  // units = hPa
-    Serial.print(F("Temp: ")); Serial.println(T,2);   // units = ºC
+    Serial.print("Press: "); Serial.println(P,2);  // units = hPa
+    Serial.print("Temp: "); Serial.println(T,2);   // units = ºC
   #endif
   data->temperature = T;
   data->pressure = P;
