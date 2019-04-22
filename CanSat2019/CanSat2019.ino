@@ -19,16 +19,17 @@
 #define SIGNAL_THRESHOLD 50  // Min muon threshold to trigger on 
 #define TXPOWER          14  // entre 5-23 dbm
 
+
 // para habilitar ou desabilitar funcionalidade para teste
-//#define ENABLE_BMP           // BMP
-#define ENABLE_GPS         // GPS
+#define ENABLE_BMP           // BMP
+//#define ENABLE_GPS         // GPS
 #define ENABLE_RF          // RF
-//#define ENABLE_SD            // SD card
-//#define ENABLE_PIXY          // Pixy2
+#define ENABLE_SD            // SD card
+#define ENABLE_PIXY          // Pixy2
 //#define ENABLE_CSW         // Cosmic Watch
 #define DEBUG                // imprime valores na consola 
 
-// LIVARIAS
+// BIBLIOTECAS
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <SPI.h>
@@ -40,9 +41,8 @@
   #include <SoftwareSerial.h>
 #endif
 #ifdef ENABLE_PIXY
-  #include <Pixy2SPI_SS.h>
-  #include <Pixy2.h>
-  Pixy2SPI_SS pixy;
+  #include <Pixy2I2C.h>
+  Pixy2I2C pixy;
 #endif
 #ifdef ENABLE_BMP
   #include <Adafruit_BMP280.h>
@@ -58,9 +58,7 @@
 #define RxPin       7   // Software Serial port
 #define TxPin       8   // Software Serial port
 
-#define BMP_CS      6   // Arduino D6 (SPI)
 #define SD_CS       4   // Arduino D4 (SPI)
-#define PIXY_CS     6   // Arduino D5 - se nao funcionar trocar com porta 10
 
 #define RFM95_CS    10  // Arduino D10 (porta SPI SS)
 #define RFM95_RST   9   // Arduino D9 (SPI)
@@ -68,7 +66,7 @@
 
 // SENSORES
 #ifdef ENABLE_BMP
-  Adafruit_BMP280 bmp(BMP_CS); // Hardware SPI
+  Adafruit_BMP280 bmp; //I2C
 #endif
 #ifdef ENABLE_RF
   RH_RF95 rf95(RFM95_CS, RFM95_INT); 
