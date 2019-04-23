@@ -1,7 +1,7 @@
 
 /*  PROJETO CANSAT - Escola Secundária José Gomes Ferreira (AEB)
  *  Tomás Philippart 2019
- 
+
     BMP280 - Pressão, Temperatura, Altitude (calculada)
     Adafruit Ultimate GPS - Longitude, Latitude, Altitude
     RFM96 LoRa - Emissor de dados RF
@@ -9,25 +9,36 @@
     Pixy 2 Camera - Detetor de agua
     Cosmic Watch - Detector de muões
 */
+
+// ======== A FAZER ===============
+
+/*
+ * Tirar o GPS
+  * Adicionar um Buzzer
+  * Cartão SD faz rebootar o arduino
+  * Passar o BMP para SPI (porta 6)
+ */
 // ___________________________ PARAMETROS PARA AJUSTAR ______________________________
 
 #define PRESSAO      1027.7  // Pressão atmosférica atual
 #define BAUD         115200  // console speed
-#define DATA_INTERVAL   250  // 1 segundo para contar muons
+#define DATA_INTERVAL   250  // 250 ms de intervalo entre muões
 #define SEND_INTERVAL  2000  // 2 segundos para outras medidas e enviar
 #define NMEA_SIZE       100  // 100 chars max
-#define SIGNAL_THRESHOLD 50  // Min muon threshold to trigger on 
-#define TXPOWER          14  // entre 5-23 dbm
-
+#define SIGNAL_THRESHOLD 50  // Min muon threshold to trigger on
+#define TXPOWER          14  // RF entre 5-23 dbm
+#define SIGMAP            3  // signature bitmap for Pixy 2 = signature 1 (bit 1) + signature 2 (bit 2) = 0000 0011 = 3 em decimal
+#define WATER_SIG         1  // signature for water
+#define LAND_SIG          2  // signature for land
 
 // para habilitar ou desabilitar funcionalidade para teste
 #define ENABLE_BMP           // BMP
-//#define ENABLE_GPS         // GPS
-#define ENABLE_RF          // RF
-#define ENABLE_SD            // SD card
+//#define ENABLE_GPS           // GPS
+#define ENABLE_RF            // RF
+//#define ENABLE_SD            // SD card
 //#define ENABLE_PIXY          // Pixy2
-//#define ENABLE_CSW         // Cosmic Watch
-#define DEBUG                // imprime valores na consola 
+//#define ENABLE_CSW           // Cosmic Watch
+#define DEBUG                // imprime valores na consola
 
 // BIBLIOTECAS
 #include <Wire.h>
@@ -47,7 +58,7 @@
 #ifdef ENABLE_BMP
   #include <Adafruit_BMP280.h>
 #endif
-#ifdef ENABLE_RF 
+#ifdef ENABLE_RF
   #include <RH_RF95.h>
 #endif
 
@@ -67,9 +78,10 @@
 // SENSORES
 #ifdef ENABLE_BMP
   Adafruit_BMP280 bmp; //I2C
+  //Adafruit_BMP280 bmp(BMP_CS); // hardware SPI
 #endif
 #ifdef ENABLE_RF
-  RH_RF95 rf95(RFM95_CS, RFM95_INT); 
+  RH_RF95 rf95(RFM95_CS, RFM95_INT);
 #endif
 #ifdef ENABLE_GPS
   SoftwareSerial mySerial(RxPin, TxPin);
@@ -90,13 +102,14 @@ const long double cal[] = {-9.085681659276021e-27, 4.6790804314609205e-23, -1.03
 struct Measurements {
   char timestamp[13];       // HH:MM:SS.sss   -- incluir +1 char='/0' para terminar a string
   float latitude;           // decimal degrees
-  float longitude;          // decimal degrees  
+  float longitude;          // decimal degrees
   float altitude;           // meter
   float velocity;           // m/s
   int satellites;           // number
   double pressure;          // hPa
   double temperature;       // celsius
-  uint8_t numblocks;        // number of blocks (Pixy)
+  uint8_t waterblocks;      // number of water blocks (Pixy)
+  uint8_t landblocks;       // number of land blocks (Pixy)
   uint8_t muoncount;        // number of muons
   float voltage;            // amplitude of photon voltage pulse (http://cosmicwatch.lns.mit.edu/detector#how)
 };
@@ -117,10 +130,10 @@ void setup_SD() {
 void setup_PIXY() {
 #ifdef ENABLE_PIXY
   //Inicializa a Pixy2
-  if (pixy.init(PIXY_CS)) {
+  if (pixy.init()) {
     #ifdef DEBUG
       Serial.println("PIXY2 OK");
-    #endif 
+    #endif
   } else {
     #ifdef DEBUG
       Serial.println("PIXY2 failed");
@@ -129,11 +142,11 @@ void setup_PIXY() {
 #endif
 }
 //------------------------------------ GPS -----------------------------------
-void setup_GPS() {  
+void setup_GPS() {
 #ifdef ENABLE_GPS
   Serial.println("Inicializando o GPS...");
   //Inicializa o GPS
-  GPS.begin(115200);                              //Turn on GPS at 115200 baud
+  GPS.begin(115200);                            //Turn on GPS at 115200 baud
   GPS.sendCommand("$PGCMD,33,0*6D");            //Turn off antenna update nuisance data
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA); //Request RMC and GGA Sentences only
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);    //Set update rate to 1 Hz
@@ -158,7 +171,7 @@ void setup_RF() {
   if (rf95.init()) {
     #ifdef DEBUG
       Serial.println("RFM96 OK");
-    #endif 
+    #endif
     } else {
     #ifdef DEBUG
       Serial.println("RFM96 failed");
@@ -168,13 +181,13 @@ void setup_RF() {
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
   // you can set transmitter powers from 5 to 23 dBm:
   rf95.setTxPower(TXPOWER, false); // CONFIRMAR A POTENCIA A USAR
-  
+
   // enviar o header para testar a ligação
-  const uint8_t header[] = "time,lat,long,alt,vel,sat,press,temp,blocks,count,voltage";
+  const uint8_t header[] = "time,lat,long,alt,vel,sat,press,temp,water,land,muons,voltage";
   rf95.send(header, sizeof(header));
   rf95.waitPacketSent();
   #ifdef DEBUG
-    Serial.println(F("RFM96 OK"));
+    Serial.println(F("RFM96 OK2"));
   #endif
 #endif
 }
@@ -185,7 +198,7 @@ void setup_BMP() {
   if (bmp.begin()) {
     #ifdef DEBUG
       Serial.println("BMP280 OK");
-    #endif 
+    #endif
   } else {
     #ifdef DEBUG
       Serial.println("BMP280 failed");
@@ -206,17 +219,17 @@ void setup() {
   #endif
 
   setup_SD();
-  setup_RF();
   setup_BMP();
+  setup_RF();
   setup_GPS();
   setup_PIXY();
   // no setup required for cosmic watch
 }
 
 //-------------------------- GPS FUNCTIONS --------------------------
-void read_GPS_data(Measurements* data) { 
-  /* mede o instante e a localização atual do cansat (tempo, lat, long, alt) 
-   * exemplo: 3:40:51.0, -32.9408, 151.7184, 2300 
+void read_GPS_data(Measurements* data) {
+  /* mede o instante e a localização atual do cansat (tempo, lat, long, alt)
+   * exemplo: 3:40:51.0, -32.9408, 151.7184, 2300
    */
 #ifdef ENABLE_GPS
   char c = GPS.read();
@@ -232,13 +245,13 @@ void read_GPS_data(Measurements* data) {
     timer = millis();                      // reset the timer
     if (GPS.fix == 1) {                    // guardar dados se tivermos um fix (contacto com satélites)
       #ifdef DEBUG
-        Serial.print(F("Lat: ")); Serial.println(GPS.latitudeDegrees); 
+        Serial.print(F("Lat: ")); Serial.println(GPS.latitudeDegrees);
         Serial.print(F("Lon: ")); Serial.println(GPS.longitudeDegrees);
       #endif
       sprintf(data->timestamp, "%d:%d:%d.%d", GPS.hour, GPS.minute, GPS.seconds, GPS.milliseconds);
       data->latitude = GPS.latitudeDegrees;
       data->longitude = GPS.longitudeDegrees;
-      data->altitude = GPS.altitude; 
+      data->altitude = GPS.altitude;
       data->velocity = GPS.speed * knots_2_mps;
       data->satellites = GPS.satellites;
     }
@@ -266,11 +279,20 @@ void read_BMP_data(Measurements* data) { // mede a temperatura e a pressão
 //----------------------------------------------- PIXY FUNCTIONS ----------------------------------------------
 void read_PIXY_data(Measurements* data) { // mede a temperatura e a pressão
 #ifdef ENABLE_PIXY
-  pixy.ccc.getBlocks();
-  data->numblocks = pixy.ccc.numBlocks; // DEVEMOS CONTAR CADA COR SEPARADAMENTE ???
+  pixy.ccc.getBlocks(false, SIGMAP); // no waiting, water & land signatures
+  for (int i = 0; i < pixy.ccc.numBlocks; i++) {
+    switch (pixy.ccc.blocks[i].m_signature) {
+      case WATER_SIG:
+        data->waterblocks++;
+        break;
+      case LAND_SIG:
+        data->landblocks++;
+        break;
+    }
+  }
   #ifdef DEBUG
-    // prints number of blocks are detected 
-    Serial.print(F("Blocks: ")); Serial.println(pixy.ccc.numBlocks);     
+    // prints number of blocks detected
+    Serial.print(F("Blocks: ")); Serial.println(pixy.ccc.numBlocks);
   #endif
 #endif
 }
@@ -286,17 +308,17 @@ void read_CSW_data(Measurements* data) { // conta os muons
   data->muoncount++;
   }
   #ifdef DEBUG
-    // prints number of muons detected 
-    Serial.print(F("Muons: ")); Serial.println(data->muoncount);     
+    // prints number of muons detected
+    Serial.print(F("Muons: ")); Serial.println(data->muoncount);
   #endif
 #endif
 }
 //--------------------------------- RF FUNCTIONS --------------------------
 void send_and_save_measurements(Measurements* data) {
-  // String timestamp, float latitude, float longitude, float altitude, float velocity, int satellites, 
+  // String timestamp, float latitude, float longitude, float altitude, float velocity, int satellites,
   // double pressure, double temperature, int numblocks, int muoncount, float voltage
   char buf[500];
-  char val[10] = ",";  
+  char val[10] = ",";
   strcpy(buf, data->timestamp);
   dtostrf(data->latitude, 0, 4, val+1); strcat(buf, val);
   dtostrf(data->longitude, 0, 4, val+1); strcat(buf, val);
@@ -306,10 +328,11 @@ void send_and_save_measurements(Measurements* data) {
   itoa(data->satellites, val+1, 10), strcat(buf, val);
   dtostrf(data->pressure, 0, 2, val+1); strcat(buf, val);
   dtostrf(data->temperature, 0, 2, val+1); strcat(buf, val);
-  itoa(data->numblocks, val+1, 10), strcat(buf, val);
+  itoa(data->waterblocks, val+1, 10), strcat(buf, val);
+  itoa(data->landblocks, val+1, 10), strcat(buf, val);
   itoa(data->muoncount, val+1, 10), strcat(buf, val);
   dtostrf(data->voltage, 0, 2, val+1); strcat(buf, val);
-  
+
   #ifdef ENABLE_RF
     rf95.send(buf, strlen(buf));
     rf95.waitPacketSent();
@@ -328,39 +351,38 @@ void send_and_save_measurements(Measurements* data) {
 //====================================== MAIN LOOP =========================================
 
 Measurements dados;
-
 bool first = true;
 uint16_t elapsed = 0;
 
 void loop() {
-   
+
   if (first) {
     memset(&dados, 0, sizeof(Measurements));
-    first = false; 
+    first = false;
   }
-  
-  // MUONS                           cada 1 segundo
+
+  // MUONS                           cada 250 ms
   read_CSW_data(&dados);
   elapsed += DATA_INTERVAL;
 
   if (elapsed >= SEND_INTERVAL) { // cada 2 segundos
     elapsed = 0;
-  
+
     // GPS LATITUDE, LONGITUDE & ALTITUDE
     read_GPS_data(&dados);
-  
+
     // PRESSÃO, TEMPERATURA, ALTITUDE (calc)
     read_BMP_data(&dados);
-  
+
     // BLOCKS
     read_PIXY_data(&dados);
-    
+
     // ENVIO DE DADOS (RF)
     send_and_save_measurements(&dados);
-  
+
     // limpar os dados anteriores
     memset(&dados, 0, sizeof(Measurements));
   }
-  
+
   delay(DATA_INTERVAL);
 }
