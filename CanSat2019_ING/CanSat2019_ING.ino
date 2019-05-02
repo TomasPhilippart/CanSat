@@ -11,24 +11,25 @@
 
 // ___________________________ PARAMETERS TO ADJUST ______________________________
 
-#define PRESSAO      1027.7  // Current barometric pressure at sea level
+#define PRESSAO      1024.7  // Current barometric pressure at sea level
 #define BAUD         115200  // console speed
 #define DATA_INTERVAL   250  // 250 ms interval between muon count
 #define SEND_INTERVAL  2000  // 2 s interval for sending interval
 #define SIGNAL_THRESHOLD 50  // Min muon threshold to trigger on
 #define RF95_FREQ    433.55  // RF frequency
 #define TXPOWER          14  // RF entre 5-23 dbm
-#define SIGMAP            3  // signature bitmap for Pixy 2 = signature 1 (bit 1) + signature 2 (bit 2) = 0000 0011 = 3 em decimal
+#define SIGMAP            7  // signature bitmap for Pixy 2 = signature 1 (bit 1) + signature 2 (bit 2) = 0000 0011 = 3 em decimal
 #define WATER_SIG         1  // signature for water
 #define LAND_SIG          2  // signature for land
+#define ROCK_SIG          3  // signature for rock
 
 // activate or deactivate sensors/functions
 #define ENABLE_BMP           // BMP sensor
 #define ENABLE_RF            // RF
 //#define ENABLE_SD            // SD card
-#define ENABLE_PIXY          // Pixy2 camera
-#define ENABLE_CSW           // Cosmic Watch muon detector
-#define ENABLE_BUZZER        // Buzzer
+//#define ENABLE_PIXY          // Pixy2 camera
+//#define ENABLE_CSW           // Cosmic Watch muon detector
+//#define ENABLE_BUZZER        // Buzzer
 #define DEBUG                // prints to the console
 
 // PINS
@@ -37,7 +38,7 @@
 #define RFM_CS     10   // Arduino D10 (SPI SS)
 #define RFM_RST     9   // Arduino D9 (SPI)
 #define RFM_INT     2   // Arduino D2 (SPI)
-#define BUZZ_PIN    8 
+#define BUZZ_PIN    8   // Arduino D8 
 
 // BIBLIOTECAS
 #include <Wire.h>
@@ -67,6 +68,7 @@ struct Measurements {
   double temperature;     // celsius
   uint8_t water;          // number of water blocks (Pixy)
   uint8_t land;           // number of land blocks (Pixy)
+  uint8_t rock;           // number of rock blocks (Pixy)
   uint8_t muons;          // number of muons
 };
 
@@ -107,6 +109,7 @@ void setup_PIXY() {
 //------------------------------------ RF -------------------------------------
 void setup_RF() {
 #ifdef ENABLE_RF
+  Serial.println("pre-rf");
   // Initialize the RFM96 Module
   if (!rf95.init()) {
     #ifdef DEBUG
@@ -115,14 +118,17 @@ void setup_RF() {
   }
   // Defaults after init are 434.0MHz, 13dBm, Bw = 125 kHz, Cr = 4/5, Sf = 128chips/symbol, CRC on
   rf95.setFrequency(RF95_FREQ);
-  
+
+  Serial.println("Test1");
   // you can set transmitter powers from 5 to 23 dBm:
   //rf95.setTxPower(TXPOWER, false); // CONFIRMAR A POTENCIA A USAR
 
   // Send header to test connection
-  const uint8_t header[] = "time,alt,press,temp,water,land,muons";
+  const uint8_t header[] = "time,alt,press,temp,water,land,rock,muons";
   rf95.send(header, sizeof(header));
+  Serial.println("Test2");
   rf95.waitPacketSent();
+  Serial.println("Test3");
   #ifdef DEBUG
     Serial.println(F("RFM96 OK"));
   #endif
@@ -213,6 +219,9 @@ void read_PIXY_data(Measurements* data) {
       case LAND_SIG:
         data->land++;
         break;
+      case ROCK_SIG:
+        data->rock++;
+        break;
     }
   }
   #ifdef DEBUG
@@ -237,7 +246,7 @@ void read_CSW_data(Measurements* data) { // counts muons
 //--------------------------------- RF FUNCTIONS --------------------------
 void send_and_save_measurements(Measurements* data) {
   // int sequence, float altitude, double pressure, double temperature, 
-  // int water, int land, int muons
+  // int water, int land, int rock, int muons
   char buf[100];
   char val[10] = ",";
   
@@ -247,6 +256,7 @@ void send_and_save_measurements(Measurements* data) {
   dtostrf(data->temperature, 0, 2, val+1); strcat(buf, val);
   itoa(data->water, val+1, 10), strcat(buf, val);
   itoa(data->land, val+1, 10), strcat(buf, val);
+  itoa(data->rock, val+1, 10), strcat(buf, val);
   itoa(data->muons, val+1, 10), strcat(buf, val);
 
   #ifdef ENABLE_RF

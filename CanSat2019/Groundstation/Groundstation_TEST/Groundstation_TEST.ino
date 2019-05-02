@@ -24,7 +24,7 @@ void setup()
     Serial.println("init failed");
 
 
-    Serial.println("Listening at "); Serial.print(RF95_FREQ);
+    Serial.println("Listening at "); Serial.println(RF95_FREQ);
     rf95.setFrequency(RF95_FREQ);
 }
 
